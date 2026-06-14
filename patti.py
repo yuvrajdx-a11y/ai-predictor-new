@@ -5,70 +5,94 @@ import io
 from sklearn.ensemble import RandomForestClassifier
 
 # --- App Configuration & Theming ---
-st.set_page_config(page_title="AI Pro Predictor", page_icon="💎", layout="wide")
+st.set_page_config(page_title="AI Smart Predictor", page_icon="📱", layout="centered")
 
-# --- CUSTOM CSS FOR PREMIUM LOOK ---
+# --- CUSTOM CSS FOR MOBILE-FRIENDLY LOOK ---
 st.markdown("""
     <style>
-    /* Main Background & Font Tweaks */
+    /* Main Background & Padding Tweaks for Mobile */
     .stApp { background-color: #0E1117; }
+    .block-container { padding-top: 2rem; padding-bottom: 2rem; }
     
-    /* Glowing Title */
+    /* Smart Title */
     .main-title {
         text-align: center;
-        font-size: 45px;
+        font-size: 32px;
         font-weight: 800;
-        background: -webkit-linear-gradient(45deg, #FF4B4B, #FF904F);
+        background: -webkit-linear-gradient(45deg, #00F4B4, #0088FF);
         -webkit-background-clip: text;
         -webkit-text-fill-color: transparent;
-        margin-bottom: 0px;
+        margin-bottom: 5px;
     }
     .sub-title {
         text-align: center;
         color: #A0AEC0;
-        font-size: 18px;
-        margin-bottom: 30px;
+        font-size: 14px;
+        margin-bottom: 20px;
     }
     
-    /* Result Cards */
-    .vip-card {
-        background: linear-gradient(145deg, #1A1C24, #2D3748);
-        padding: 30px;
-        border-radius: 20px;
+    /* Compact Cards for Mobile */
+    .smart-card {
+        background: #1A1C24;
+        padding: 15px;
+        border-radius: 15px;
         text-align: center;
-        box-shadow: 0 10px 20px rgba(0,0,0,0.3);
-        border: 1px solid #4A5568;
+        box-shadow: 0 4px 10px rgba(0,0,0,0.5);
+        border: 1px solid #2D3748;
+        margin-bottom: 15px;
     }
-    .open-card { border-top: 5px solid #FF4B4B; }
-    .close-card { border-top: 5px solid #00F4B4; }
     
     .digit-text {
-        font-size: 60px;
+        font-size: 38px;
         font-weight: 900;
         color: white;
-        margin: 0;
-        line-height: 1.2;
+        margin: 5px 0;
+        letter-spacing: 2px;
+    }
+    
+    /* Progress Bar Base */
+    .meter-bg {
+        width: 100%;
+        background-color: #2D3748;
+        border-radius: 10px;
+        height: 6px;
+        margin-top: 10px;
+        overflow: hidden;
     }
     </style>
 """, unsafe_allow_html=True)
 
-st.markdown("<div class='main-title'>💎 AI ML Pro Dashboard</div>", unsafe_allow_html=True)
-st.markdown("<div class='sub-title'>Advanced Random Forest Prediction Engine</div>", unsafe_allow_html=True)
+st.markdown("<div class='main-title'>📱 AI Smart Engine</div>", unsafe_allow_html=True)
+st.markdown("<div class='sub-title'>Machine Learning Auto-Predictor</div>", unsafe_allow_html=True)
 
 DAY_MAP = {'Mon': 0, 'Tue': 1, 'Wed': 2, 'Thu': 3, 'Fri': 4, 'Sat': 5, 'Sun': 6}
 
-# --- CLEAN UI: FILE UPLOAD SECTION ---
-# File upload ko expander mein daala hai taaki screen clear rahe
-with st.expander("📂 Step 1: Upload Data (Click to Expand)", expanded=True):
-    uploaded_file = st.file_uploader("Apni Excel file (.xlsx) yahan upload karein:", type=["xlsx"])
-    if uploaded_file is not None:
-        excel_data = io.BytesIO(uploaded_file.getvalue())
-        st.success("✅ File securely loaded into memory!")
+# --- MOBILE FRIENDLY FILE UPLOAD ---
+with st.expander("📂 Data Setup (Upload / Link)", expanded=True):
+    data_source = st.radio("Source:", ["🔗 Live URL", "📁 Excel File"], horizontal=True)
+    excel_data = None
+    
+    if data_source == "🔗 Live URL":
+        url_input = st.text_input("Paste Excel URL:")
+        if st.button("Fetch"):
+            if url_input:
+                try:
+                    with st.spinner("Downloading..."):
+                        import requests
+                        resp = requests.get(url_input)
+                        resp.raise_for_status()
+                        excel_data = io.BytesIO(resp.content)
+                        st.success("✅ Fetched!")
+                except:
+                    st.error("❌ Link Error")
     else:
-        excel_data = None
+        uploaded_file = st.file_uploader("Upload .xlsx", type=["xlsx"])
+        if uploaded_file:
+            excel_data = io.BytesIO(uploaded_file.getvalue())
+            st.success("✅ Loaded!")
 
 # --- ML PROCESSING FUNCTION ---
-@st.cache_resource # Caching added taaki app baar-baar lag na kare
+@st.cache_resource
 def process_and_train(file_bytes, sheet_name):
     try:
         df = pd.read_excel(file_bytes, sheet_name=sheet_name)
@@ -102,17 +126,15 @@ def process_and_train(file_bytes, sheet_name):
     except Exception as e:
         return None, None, None, None, None, str(e)
 
-# --- MAIN LOGIC & UI ---
+# --- MAIN UI LOGIC ---
 if excel_data is not None:
     try:
         xls = pd.ExcelFile(excel_data)
         valid_sheets = [sheet for sheet in xls.sheet_names if not sheet.lower().startswith('sheet')]
         
-        # Market selection moved to sidebar
-        st.sidebar.markdown("### ⚙️ Engine Settings")
-        market_choice = st.sidebar.selectbox("🎯 Target Market:", valid_sheets if valid_sheets else xls.sheet_names)
+        market_choice = st.selectbox("🎯 Select Market:", valid_sheets if valid_sheets else xls.sheet_names)
         
-        with st.spinner('⏳ AI is analyzing thousands of trees...'):
+        with st.spinner('🤖 AI Training in progress...'):
             data, last_record, days_order, model_open, model_close, error = process_and_train(excel_data, market_choice)
         
         if error: st.error(error)
@@ -124,60 +146,52 @@ if excel_data is not None:
             except:
                 next_day_target = days_order[0]
             
-            # Prediction
+            # Machine Learning Prediction
             X_new = pd.DataFrame([[DAY_MAP.get(next_day_target, 0), last_open, last_close]], columns=['DayNum', 'Open', 'Close'])
             pred_o_probs, pred_c_probs = model_open.predict_proba(X_new)[0], model_close.predict_proba(X_new)[0]
             
             top_o_idx, top_c_idx = np.argsort(pred_o_probs)[::-1][:2], np.argsort(pred_c_probs)[::-1][:2]
             top_o_digits, top_c_digits = model_open.classes_[top_o_idx], model_close.classes_[top_c_idx]
             
-            # UI: Header
-            st.markdown("---")
-            st.markdown(f"<h3 style='text-align: center; color: #FFF;'>🎯 Target: {next_day_target.upper()} ({market_choice})</h3>", unsafe_allow_html=True)
+            # Confidence Calculation
+            o_conf_1 = int(pred_o_probs[top_o_idx[0]] * 100)
+            c_conf_1 = int(pred_c_probs[top_c_idx[0]] * 100)
             
-            # UI: Main Prediction Cards
+            # --- UI PRESENTATION FOR MOBILE ---
+            st.markdown(f"<h4 style='text-align: center; color: #FFF; margin-top: 15px;'>Prediction: {next_day_target.upper()}</h4>", unsafe_allow_html=True)
+            
             col1, col2 = st.columns(2)
+            
+            # OPEN CARD
             with col1:
                 st.markdown(
-                    f"<div class='vip-card open-card'>"
-                    f"<p style='color:#FF4B4B; font-weight:bold; letter-spacing:2px;'>🔥 PREDICTED OPEN</p>"
-                    f"<p class='digit-text'>{top_o_digits[0]} <span style='font-size:30px; color:gray;'>&</span> {top_o_digits[1]}</p>"
+                    f"<div class='smart-card' style='border-top: 3px solid #FF4B4B;'>"
+                    f"<p style='color:#FF4B4B; font-size:12px; font-weight:bold; margin:0;'>🔥 OPEN</p>"
+                    f"<p class='digit-text'>{top_o_digits[0]} <span style='font-size:20px; color:#4A5568;'>&</span> {top_o_digits[1]}</p>"
+                    f"<div class='meter-bg'><div style='width: {o_conf_1}%; background-color: #FF4B4B; height: 100%;'></div></div>"
+                    f"<p style='font-size:10px; color:gray; text-align:right; margin:2px 0 0 0;'>AI Power: {o_conf_1}%</p>"
                     f"</div>", unsafe_allow_html=True
                 )
+                
+            # CLOSE CARD
             with col2:
                 st.markdown(
-                    f"<div class='vip-card close-card'>"
-                    f"<p style='color:#00F4B4; font-weight:bold; letter-spacing:2px;'>⚡ PREDICTED CLOSE</p>"
-                    f"<p class='digit-text'>{top_c_digits[0]} <span style='font-size:30px; color:gray;'>&</span> {top_c_digits[1]}</p>"
+                    f"<div class='smart-card' style='border-top: 3px solid #00F4B4;'>"
+                    f"<p style='color:#00F4B4; font-size:12px; font-weight:bold; margin:0;'>⚡ CLOSE</p>"
+                    f"<p class='digit-text'>{top_c_digits[0]} <span style='font-size:20px; color:#4A5568;'>&</span> {top_c_digits[1]}</p>"
+                    f"<div class='meter-bg'><div style='width: {c_conf_1}%; background-color: #00F4B4; height: 100%;'></div></div>"
+                    f"<p style='font-size:10px; color:gray; text-align:right; margin:2px 0 0 0;'>AI Power: {c_conf_1}%</p>"
                     f"</div>", unsafe_allow_html=True
                 )
             
-            # UI: Beautiful Jodis Section
+            # VIP JODI CARD
             expected_jodis = [f"{o}{c}" for o in top_o_digits for c in top_c_digits]
-            st.markdown("<br>", unsafe_allow_html=True)
             st.markdown(
-                f"<div style='background:rgba(255, 215, 0, 0.1); border: 1px solid #FFD700; padding:15px; border-radius:10px; text-align:center;'>"
-                f"<h4 style='color:#FFD700; margin:0;'>💎 VIP JODIS</h4>"
-                f"<h2 style='color:#FFF; letter-spacing: 10px; margin:10px 0 0 0;'>{', '.join(expected_jodis)}</h2>"
+                f"<div class='smart-card' style='border: 1px solid #FFD700; background:rgba(255, 215, 0, 0.05);'>"
+                f"<p style='color:#FFD700; font-size:12px; font-weight:bold; margin:0;'>💎 VIP JODIS</p>"
+                f"<p style='color:#FFF; font-size:24px; font-weight:800; letter-spacing:5px; margin:5px 0 0 0;'>{', '.join(expected_jodis)}</p>"
                 f"</div>", unsafe_allow_html=True
             )
-            
-            # UI: AI Confidence Probability Charts
-            st.markdown("<br><br><h4 style='color:gray;'>📊 AI Probability Analytics (Confidence Score)</h4>", unsafe_allow_html=True)
-            chart_col1, chart_col2 = st.columns(2)
-            
-            # Prepare data for charts
-            df_o_chart = pd.DataFrame({'Probability %': pred_o_probs * 100}, index=model_open.classes_).sort_values(by='Probability %', ascending=False).head(5)
-            df_c_chart = pd.DataFrame({'Probability %': pred_c_probs * 100}, index=model_close.classes_).sort_values(by='Probability %', ascending=False).head(5)
-            
-            with chart_col1:
-                st.write("📈 **Open Confidence**")
-                st.bar_chart(df_o_chart, color="#FF4B4B")
-            with chart_col2:
-                st.write("📈 **Close Confidence**")
-                st.bar_chart(df_c_chart, color="#00F4B4")
 
     except Exception as general_err:
         st.error(f"❌ Error: {general_err}")
-else:
-    st.info("👆 Kripya upar apni file upload karein taaki dashboard activate ho.")
