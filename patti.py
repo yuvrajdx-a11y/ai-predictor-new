@@ -67,29 +67,13 @@ st.markdown("<div class='sub-title'>Machine Learning Auto-Predictor</div>", unsa
 
 DAY_MAP = {'Mon': 0, 'Tue': 1, 'Wed': 2, 'Thu': 3, 'Fri': 4, 'Sat': 5, 'Sun': 6}
 
-# --- MOBILE FRIENDLY FILE UPLOAD ---
-with st.expander("📂 Data Setup (Upload / Link)", expanded=True):
-    data_source = st.radio("Source:", ["🔗 Live URL", "📁 Excel File"], horizontal=True)
+# --- MOBILE FRIENDLY FILE UPLOAD (URL REMOVED) ---
+with st.expander("📂 Data Setup (Upload File)", expanded=True):
+    uploaded_file = st.file_uploader("Upload apni Excel file (.xlsx)", type=["xlsx"])
     excel_data = None
-    
-    if data_source == "🔗 Live URL":
-        url_input = st.text_input("Paste Excel URL:")
-        if st.button("Fetch"):
-            if url_input:
-                try:
-                    with st.spinner("Downloading..."):
-                        import requests
-                        resp = requests.get(url_input)
-                        resp.raise_for_status()
-                        excel_data = io.BytesIO(resp.content)
-                        st.success("✅ Fetched!")
-                except:
-                    st.error("❌ Link Error")
-    else:
-        uploaded_file = st.file_uploader("Upload .xlsx", type=["xlsx"])
-        if uploaded_file:
-            excel_data = io.BytesIO(uploaded_file.getvalue())
-            st.success("✅ Loaded!")
+    if uploaded_file:
+        excel_data = io.BytesIO(uploaded_file.getvalue())
+        st.success("✅ File Loaded!")
 
 # --- ML PROCESSING FUNCTION ---
 @st.cache_resource
